@@ -1,0 +1,8 @@
+*.pcap
+*.pcapng
+eve.json
+*.log
+.env
+*.key
+__pycache__/
+.venv/
