@@ -6,7 +6,7 @@
 set -euo pipefail
 
 WAN_IF="${WAN_IF:-ens33}"            # internet side (VMware NAT)
-LAN_IF="${LAN_IF:-ens37}"            # campus client side (Host-only)
+LAN_IF="${LAN_IF:-ens160}"            # campus client side (Host-only)
 LAN_NET="${LAN_NET:-192.168.74.0/24}" # campus client network
 
 if [[ $EUID -ne 0 ]]; then
