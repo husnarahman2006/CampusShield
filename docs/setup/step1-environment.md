@@ -45,4 +45,4 @@ Check with:
 | apt: "Waiting for cache lock" | Background updates were running; wait, or reboot and retry |
 | docker: "permission denied" on docker.sock | Add the user to the docker group, then reboot |
 | docker.service failed after install | `sudo systemctl reset-failed docker`, `sudo systemctl restart containerd`, `sudo systemctl restart docker` |
-| VMware "Expand" disabled | The VM had a snapshot; delete it first |
+
