@@ -1,0 +1,44 @@
+# =============================================================================
+# CampusShield - Stage 2: Identity & Timetable Matcher - services
+#
+# WHAT: Runs the PostgreSQL database that stores users, verification codes,
+#       sessions, the class timetable, domain categories and policies.
+# WHY Docker: the database runs isolated from the firewall itself, has a
+#       fixed version, and can be recreated with one command on any machine.
+#
+# USAGE (from this folder):
+#   cp .env.example .env        # then put a real password in .env
+#   docker compose up -d        # start the database in the background
+#   docker compose ps           # check that it is running
+#   docker compose down         # stop it (data is kept in the volume)
+# =============================================================================
+
+services:
+  db:
+    image: postgres:16-alpine          # fixed major version; alpine = small image
+    container_name: campusshield-db
+    restart: unless-stopped            # start again automatically after a reboot
+    environment:
+      # Values come from the .env file, so the password is never in Git.
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    ports:
+      # 127.0.0.1 = reachable only from the gateway itself, not from clients
+      # on the campus LAN. The backend (FastAPI) runs on the gateway too.
+      - "127.0.0.1:5432:5432"
+    volumes:
+      # Named volume: the data survives "docker compose down" and restarts.
+      - campusshield-db-data:/var/lib/postgresql/data
+      # Every .sql file in db/ runs once, when the database is first created.
+      # This builds the tables and inserts the starting data.
+      - ./db:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      # Lets "docker compose ps" show "healthy" once the database accepts connections.
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  campusshield-db-data:
