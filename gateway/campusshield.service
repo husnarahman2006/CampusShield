@@ -1,0 +1,35 @@
+# =============================================================================
+# CampusShield boot service
+#
+# WHAT: Starts the gateway (forwarding + NAT) and, if blocking is enabled,
+#       re-adds the blocking queue rules every time Ubuntu starts.
+# WHY:  iptables rules and ip_forward are lost on reboot. Without this service
+#       the gateway would need a manual command after every restart, and the
+#       demo would fail if the VM was restarted.
+#
+# INSTALL:
+#   sudo cp gateway/campusshield.service /etc/systemd/system/
+#   sudo systemctl daemon-reload
+#   sudo systemctl enable --now campusshield
+# =============================================================================
+
+[Unit]
+Description=CampusShield gateway and SNI blocking
+# Start after the network and Suricata are up, so the interfaces exist and
+# Suricata is ready to receive queued packets.
+After=network-online.target suricata.service docker.service
+Wants=network-online.target
+
+[Service]
+# oneshot: the commands run once and finish; RemainAfterExit keeps the
+# service shown as "active" so "systemctl stop" can undo it.
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/home/ubuntu/CampusShield/gateway/setup-gateway.sh start
+ExecStart=/home/ubuntu/CampusShield/stage3-dpi-sni/blocking.sh resume
+ExecStop=/home/ubuntu/CampusShield/stage3-dpi-sni/blocking.sh pause
+ExecStop=/home/ubuntu/CampusShield/gateway/setup-gateway.sh stop
+
+[Install]
+# Start automatically at every normal boot.
+WantedBy=multi-user.target
