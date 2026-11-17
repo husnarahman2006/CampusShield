@@ -53,9 +53,6 @@ CATEGORIES = {
     "googlevideo.com": "video-streaming",
     "ytimg.com": "video-streaming",
     "netflix.com": "video-streaming",
-    "whatsapp.com": "messaging",
-    "whatsapp.net": "messaging",
-    "telegram.org": "messaging",
 }
 
 # Column order for the CSV file (also the fields of each record).
