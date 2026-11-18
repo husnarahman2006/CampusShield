@@ -65,8 +65,37 @@ def suricata_flows(client_ip):
                 continue
             fl = e.get("flow", {})
             key = (str(e.get("src_port")), e.get("dest_ip"))
-            flows[key] = (fl.get("pkts_toserver", 0), fl.get("pkts_toclient", 0))
+            out_, in_ = fl.get("pkts_toserver", 0), fl.get("pkts_toclient", 0)
+            # A connection that stays idle for a long time (e.g. a browser's
+            # background push connection) is closed by Suricata's flow timeout,
+            # and a NEW flow record starts when traffic resumes. Both records
+            # belong to the same TCP connection, so their counts are added.
+            old = flows.get(key, (0, 0))
+            flows[key] = (old[0] + out_, old[1] + in_)
     return flows
+
+
+def classify(w, c):
+    """Explain the result for one connection.
+
+    w = Wireshark (out, in), c = CampusShield (out, in).
+      MATCH    - both tools counted exactly the same packets.
+      BLOCKED  - same packets from the client, but CampusShield counted MORE
+                 packets from the server: those server replies reached the
+                 gateway, Suricata counted them and then DROPPED them, so they
+                 never reached the LAN card where Wireshark was recording.
+      PARTIAL  - CampusShield counted more in both directions: the connection
+                 started before or ended after the Wireshark recording, so
+                 Wireshark saw only part of it while Suricata saw all of it.
+      OTHER    - any other difference (should be rare; check by hand).
+    """
+    if w == c:
+        return "MATCH"
+    if w[0] == c[0] and c[1] > w[1]:
+        return "BLOCKED"
+    if c[0] >= w[0] and c[1] >= w[1]:
+        return "PARTIAL"
+    return "OTHER"
 
 
 def main():
@@ -82,17 +111,26 @@ def main():
     # Show the biggest connections first: they are the most convincing.
     common.sort(key=lambda k: sum(ws[k]), reverse=True)
 
-    print(f"{'Server':<17}{'Port':>7} | {'Wireshark out/in':>17} | {'CampusShield out/in':>20} | Match")
-    print("-" * 78)
-    exact = 0
+    print(f"{'Server':<17}{'Port':>7} | {'Wireshark out/in':>17} | {'CampusShield out/in':>20} | Result")
+    print("-" * 80)
     for key in common[:max_rows]:
         port, server = key
         w, c = ws[key], fa[key]
-        same = (w == c)
-        exact += same
-        print(f"{server:<17}{port:>7} | {w[0]:>8}/{w[1]:<8} | {c[0]:>9}/{c[1]:<10} | {'YES' if same else 'close' if abs(sum(w)-sum(c)) <= 2 else 'NO'}")
-    print("-" * 78)
-    print(f"Connections in both tools: {len(common)}   Shown: {min(len(common), max_rows)}   Exact match: {exact}")
+        print(f"{server:<17}{port:>7} | {w[0]:>8}/{w[1]:<8} | {c[0]:>9}/{c[1]:<10} | {classify(w, c)}")
+    print("-" * 80)
+
+    # Summary over ALL matched connections (not only the rows shown).
+    counts = {"MATCH": 0, "BLOCKED": 0, "PARTIAL": 0, "OTHER": 0}
+    for key in common:
+        counts[classify(ws[key], fa[key])] += 1
+    total = len(common)
+    print(f"Connections found by both tools: {total}")
+    for name, n in counts.items():
+        pct = 100 * n / total if total else 0
+        print(f"  {name:<8} {n:>4}  ({pct:.1f}%)")
+    explained = counts["MATCH"] + counts["BLOCKED"] + counts["PARTIAL"]
+    if total:
+        print(f"Matching or explained: {explained}/{total} ({100 * explained / total:.1f}%)")
 
 
 if __name__ == "__main__":
