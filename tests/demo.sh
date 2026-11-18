@@ -12,7 +12,7 @@
 #   sudo ./tests/demo.sh stop      # stop recording
 #   sudo ./tests/demo.sh sni       # websites seen INSIDE vs websites that LEFT the gateway
 #   sudo ./tests/demo.sh blocked   # every connection Suricata blocked
-#   sudo ./tests/demo.sh flows     # Flow Aggregator counts vs Wireshark counts
+#   sudo ./tests/demo.sh flows     # Wireshark vs CampusShield packet counts, same connections
 #
 # Typical demo:  record -> (open websites on Kali) -> stop -> sni -> blocked -> flows
 # =============================================================================
@@ -119,17 +119,15 @@ case "${1:-help}" in
     ;;
 
   flows)
-    # Two different tools count the packets of the same connections.
+    # Two different tools count the packets of the SAME connections:
+    # Wireshark (from the recording) and CampusShield's flow records
+    # (Suricata eve.json, read the same way as the Flow Aggregator).
+    # Connections are matched by client port + server IP.
     # Suricata writes a flow record only after the connection ends, so wait
-    # 1-2 minutes after opening the websites.
-    title "Flow Aggregator (CampusShield) - last HTTPS flows from $CLIENT_IP"
-    python3 "$REPO_DIR/stage1-packet-capture/flow_aggregator.py" --client "$CLIENT_IP" 2>/dev/null \
-      | grep ":443" | tail -5
-    title "Wireshark (tshark) - TCP conversations on $LAN_IF"
-    [[ -f "$LAN_PCAP" ]] && tshark -r "$LAN_PCAP" -q -z conv,tcp 2>/dev/null \
-      || echo "No recording yet. Run: record, then stop."
-    echo
-    echo "Compare the server IP in both lists: the packet counts should match."
+    # 1-2 minutes after opening the websites before running this.
+    [[ -f "$LAN_PCAP" ]] || { echo "No recording yet. Run: record, then stop."; exit 1; }
+    title "Packet counts: Wireshark vs CampusShield (same connections)"
+    python3 "$REPO_DIR/tests/compare_flows.py" "$LAN_PCAP" "$CLIENT_IP" 10
     ;;
 
   *)
