@@ -8,6 +8,7 @@
 INSERT INTO domain_categories (domain, category) VALUES
     ('facebook.com',     'social-media'),
     ('fbcdn.net',        'social-media'),
+    ('facebook.net',     'social-media'),
     ('instagram.com',    'social-media'),
     ('cdninstagram.com', 'social-media'),
     ('tiktok.com',       'social-media'),
