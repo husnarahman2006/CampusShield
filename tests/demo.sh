@@ -13,6 +13,7 @@
 #   sudo ./tests/demo.sh sni       # websites seen INSIDE vs websites that LEFT the gateway
 #   sudo ./tests/demo.sh blocked   # every connection Suricata blocked
 #   sudo ./tests/demo.sh flows     # Wireshark vs CampusShield packet counts, same connections
+#   sudo ./tests/demo.sh live      # show each block the moment it happens (Ctrl+C to stop)
 #
 # Typical demo:  record -> (open websites on Kali) -> stop -> sni -> blocked -> flows
 # =============================================================================
@@ -109,13 +110,21 @@ case "${1:-help}" in
 
   blocked)
     # Suricata's own record of every connection it blocked.
+    # When the VM is switched off suddenly, the file can get a run of empty
+    # (zero) bytes in it. grep then treats the whole file as "binary" and
+    # silently stops printing at that point, hiding every later block.
+    # tr -d '\000' removes those zero bytes first, so every line is read.
+    # "fromjson?" then skips any line that is still damaged.
     title "Blocked connections (Suricata eve.json)"
-    grep '"CampusShield BLOCK' "$EVE" 2>/dev/null | \
-      jq -r '[.timestamp[11:19], .src_ip, .tls.sni, .alert.signature, .alert.action] | @tsv'
+    tr -d '\000' < "$EVE" | grep '"CampusShield BLOCK' | \
+      jq -R -r 'fromjson? | [.timestamp[0:10], .timestamp[11:19], .src_ip, .tls.sni, .alert.signature, .alert.action] | @tsv'
     title "Total blocked"
-    grep -c '"CampusShield BLOCK' "$EVE" 2>/dev/null
+    tr -d '\000' < "$EVE" | grep '"CampusShield BLOCK' | jq -R -r 'fromjson? | .tls.sni' | wc -l
     title "Blocked per website"
-    grep '"CampusShield BLOCK' "$EVE" 2>/dev/null | jq -r '.tls.sni' | sort | uniq -c | sort -rn
+    tr -d '\000' < "$EVE" | grep '"CampusShield BLOCK' | jq -R -r 'fromjson? | .tls.sni' | sort | uniq -c | sort -rn
+    title "Blocked today ($(date +%F))"
+    tr -d '\000' < "$EVE" | grep '"CampusShield BLOCK' | \
+      jq -R -r --arg d "$(date +%F)" 'fromjson? | select(.timestamp[0:10] == $d) | .tls.sni' | sort | uniq -c | sort -rn
     ;;
 
   flows)
@@ -130,7 +139,18 @@ case "${1:-help}" in
     python3 "$REPO_DIR/tests/compare_flows.py" "$LAN_PCAP" "$CLIENT_IP" 10
     ;;
 
+  live)
+    # Watch blocks as they happen, for a live demo: open a website on the
+    # client and its line appears here at once. Allowed websites print nothing.
+    #   tail -n 0 -f     : start at the end of the file and wait for new lines
+    #   --line-buffered  : pass each line on immediately instead of in batches
+    #   fromjson?        : skip a damaged line instead of stopping
+    title "Live blocks - open a website on the client now (Ctrl+C to stop)"
+    tail -n 0 -f "$EVE" | grep --line-buffered '"CampusShield BLOCK' | \
+      jq --unbuffered -R -r 'fromjson? | [.timestamp[11:19], .src_ip, .tls.sni, .alert.signature] | @tsv'
+    ;;
+
   *)
-    sed -n '2,20p' "$0"   # print the explanation at the top of this file
+    sed -n '2,21p' "$0"   # print the explanation at the top of this file
     ;;
 esac
