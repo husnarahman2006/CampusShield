@@ -4,22 +4,61 @@
 -- timetable and the university's policy.
 -- =============================================================================
 
--- Domain categories: the same list the SNI extractor used (Table 5.6 of the thesis).
+-- Domain categories (Table 5.6 of the thesis). A subdomain matches its parent domain.
+-- WhatsApp, Telegram, LinkedIn and Quora are deliberately NOT listed (used for study).
 INSERT INTO domain_categories (domain, category) VALUES
-    ('facebook.com',     'social-media'),
-    ('fbcdn.net',        'social-media'),
-    ('facebook.net',     'social-media'),
-    ('instagram.com',    'social-media'),
-    ('cdninstagram.com', 'social-media'),
-    ('tiktok.com',       'social-media'),
-    ('tiktokcdn.com',    'social-media'),
-    ('x.com',            'social-media'),
-    ('twitter.com',      'social-media'),
-    ('snapchat.com',     'social-media'),
-    ('youtube.com',      'video-streaming'),
-    ('googlevideo.com',  'video-streaming'),
-    ('ytimg.com',        'video-streaming'),
-    ('netflix.com',      'video-streaming');
+    -- Facebook / Messenger
+    ('facebook.com',      'social-media'),
+    ('facebook.net',      'social-media'),
+    ('fbcdn.net',         'social-media'),
+    ('fb.com',            'social-media'),
+    ('messenger.com',     'social-media'),
+    ('fbsbx.com',         'social-media'),
+    -- Instagram
+    ('instagram.com',     'social-media'),
+    ('cdninstagram.com',  'social-media'),
+    -- TikTok
+    ('tiktok.com',        'social-media'),
+    ('tiktokcdn.com',     'social-media'),
+    ('tiktokv.com',       'social-media'),
+    -- Snapchat
+    ('snapchat.com',      'social-media'),
+    ('sc-cdn.net',        'social-media'),
+    -- X (Twitter)
+    ('x.com',             'social-media'),
+    ('twitter.com',       'social-media'),
+    -- Threads
+    ('threads.net',       'social-media'),
+    ('threads.com',       'social-media'),
+    -- Pinterest
+    ('pinterest.com',     'social-media'),
+    ('pinimg.com',        'social-media'),
+    -- Reddit
+    ('reddit.com',        'social-media'),
+    ('redditmedia.com',   'social-media'),
+    ('redditstatic.com',  'social-media'),
+    ('redd.it',           'social-media'),
+    -- Discord
+    ('discord.com',       'social-media'),
+    ('discord.gg',        'social-media'),
+    ('discordapp.com',    'social-media'),
+    ('discordapp.net',    'social-media'),
+    -- Snack Video, Likee, Bigo Live, Tumblr
+    ('snackvideo.com',    'social-media'),
+    ('likee.video',       'social-media'),
+    ('bigo.tv',           'social-media'),
+    ('tumblr.com',        'social-media'),
+    -- YouTube
+    ('youtube.com',       'video-streaming'),
+    ('googlevideo.com',   'video-streaming'),
+    ('ytimg.com',         'video-streaming'),
+    ('youtu.be',          'video-streaming'),
+    -- Netflix
+    ('netflix.com',       'video-streaming'),
+    -- Twitch
+    ('twitch.tv',         'video-streaming'),
+    ('ttvnw.net',         'video-streaming'),
+    ('jtvnw.net',         'video-streaming');
 
 
 -- Policies.
